@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Panel</title>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js"></script>
+    <link rel="stylesheet" href="admin-style.css">
+</head>
+<body>
+    <div class="admin-container">
+        <h2>Admin Panel - ID Activation Requests</h2>
+        <button onclick="logout()">Logout</button>
+        <div id="request-list"></div>
+    </div>
+
+    <script>
+        const firebaseConfig = {
+            apiKey: "AIzaSyAVRUkZh7v...",
+            authDomain: "incomewebsite-9032c.firebaseapp.com",
+            projectId: "incomewebsite-9032c",
+            storageBucket: "incomewebsite-9032c.appspot.com",
+            messagingSenderId: "271108120298",
+            appId: "1:271108120298:web:e3c42277f5a604f995c193"
+        };
+
+        firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+        const db = firebase.firestore();
+
+        // 🔹 শুধুমাত্র নির্দিষ্ট Gmail দিয়ে লগইন করা যাবে
+        const allowedAdminEmail = "youradmin@gmail.com"; 
+
+        firebase.auth().onAuthStateChanged(user => {
+            if (!user || user.email !== allowedAdminEmail) {
+                alert("Unauthorized Access! Redirecting...");
+                window.location.href = "index.html"; // লগইন পেজে পাঠাবে
+            } else {
+                loadRequests();
+            }
+        });
+
+        function logout() {
+            firebase.auth().signOut().then(() => {
+                window.location.href = "index.html";
+            });
+        }
+
+        function loadRequests() {
+            db.collection("transactions").orderBy("timestamp", "desc").onSnapshot(snapshot => {
+                let requestList = document.getElementById("request-list");
+                requestList.innerHTML = "";
+                snapshot.forEach(doc => {
+                    let data = doc.data();
+                    let requestItem = document.createElement("div");
+                    requestItem.classList.add("request-item");
+                    requestItem.innerHTML = `
+                        <p><strong>Mobile:</strong> ${data.userNumber}</p>
+                        <p><strong>Txn ID:</strong> ${data.transactionId}</p>
+                        <button onclick="approve('${doc.id}')">Approve</button>
+                        <button onclick="reject('${doc.id}')">Reject</button>
+                    `;
+                    requestList.appendChild(requestItem);
+                });
+            });
+        }
+
+        function approve(id) {
+            db.collection("transactions").doc(id).update({ status: "Approved" }).then(() => {
+                alert("Request Approved!");
+            });
+        }
+
+        function reject(id) {
+            db.collection("transactions").doc(id).update({ status: "Rejected" }).then(() => {
+                alert("Request Rejected!");
+            });
+        }
+    </script>
+
+    <style>
+        body { font-family: Arial, sans-serif; text-align: center; }
+        .admin-container { max-width: 600px; margin: auto; padding: 20px; border: 1px solid #ddd; border-radius: 5px; }
+        .request-item { border: 1px solid #ccc; padding: 10px; margin: 10px 0; }
+        button { margin: 5px; padding: 10px; cursor: pointer; }
+    </style>
+</body>
+</html>
